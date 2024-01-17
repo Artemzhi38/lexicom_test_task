@@ -69,3 +69,32 @@ SQL запросе.
 Необходимо предоставить два и более варианта решения этой задачи.
 
 ## Решение задачи
+
+
+### Вариант 1 (raw SQL-запрос)
+
+```sql
+UPDATE full_names SET  status = subquerry.status FROM
+(SELECT  full_names.name, short_names.status 
+ FROM short_names INNER JOIN full_names 
+ ON POSITION( short_names.name || '.' IN full_names.name) = 1) AS subquerry
+WHERE subquerry.name = full_names.name
+```
+
+
+### Вариант 2 (python-скрипт, SQLAlchemy)
+
+Функция transport_status:
+```python
+def transport_status():
+    with Session() as session:
+        short_names = session.query(ShortNames).all()
+        short_names_dict = {row.name: row.status for row in short_names}
+        full_names = session.query(FullNames).all()
+        for row in full_names:
+            row.status = short_names_dict[row.name.split('.')[0]]
+        session.commit() 
+```
+
+Полный вариант скрипта содержится в директории проекта в файле transport_status_data.py
+
