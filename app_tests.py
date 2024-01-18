@@ -140,3 +140,4 @@ def test_phone_standard_function():
     assert app.phone_standard("8(999)111 22-33") == "9991112233"
     assert app.phone_standard("999") is None
     assert app.phone_standard("999999999999") is None
+    assert app.phone_standard("odin-dva-tri") is None

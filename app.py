@@ -39,7 +39,7 @@ def phone_standard(phone: str):
     """Function that transforms phone number to 10-symbol string"""
     for symbol in "()-+ ":
         phone = phone.replace(symbol, "")
-    if len(phone) == 11:
+    if len(phone) == 11 and phone.isdigit():
         return phone[1:]
 
 
@@ -47,17 +47,23 @@ def phone_standard(phone: str):
 def check_data(phone: str):
     """Endpoint for getting saved address by phone number"""
     phone_num = phone_standard(phone)
-    address = address_storage.get(phone_num)
-    if not address:
-        return "No such phone in storage"
-    return DataResponse(address=address)
+    if not phone_num:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Phone not validated",
+        )
+    else:
+        address = address_storage.get(phone_num)
+        if not address:
+            return "No such phone in storage"
+        return DataResponse(address=address)
 
 
 @app.post("/write_data", status_code=status.HTTP_201_CREATED)
 def add_new_data(data: FullData):
     """Endpoint for saving phone number and address data"""
     phone = phone_standard(data.phone)
-    if phone and phone.isdigit() and len(phone) == 10:
+    if phone:
         if data.address in ahunt_address_suggestions(data.address):
             address_storage.set(phone, data.address)
             return "Created"
@@ -77,18 +83,24 @@ def add_new_data(data: FullData):
 def update_data(data: FullData):
     """Endpoint for updating phone number and address data"""
     phone = phone_standard(data.phone)
-    address = address_storage.get(phone)
-    if address:
-        if data.address in ahunt_address_suggestions(data.address):
-            address_storage.set(phone, data.address)
-            return "Updated"
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Address not validated",
-            )
+    if not phone:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Phone not validated",
+        )
     else:
-        return "No such phone in storage"
+        address = address_storage.get(phone)
+        if address:
+            if data.address in ahunt_address_suggestions(data.address):
+                address_storage.set(phone, data.address)
+                return "Updated"
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Address not validated",
+                )
+        else:
+            return "No such phone in storage"
 
 
 @app.get("/get_suggestions/{address}")
